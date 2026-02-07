@@ -1,6 +1,7 @@
 import asyncio
 import sys
 import os
+import re
 from playwright.async_api import async_playwright, Page
 from typing import Callable, Awaitable
 
@@ -62,13 +63,27 @@ async def search_command(page: Page, project_name: str, search_terms: list[str])
     print(CONFIG["messages"]["info"]["moving_to_notebooklm"])
     await page.goto(CONFIG["urls"]["notebooklm"])
 
-    print(CONFIG["messages"]["info"]["entering_project"].format(project_name))
-    project_selector = CONFIG["selectors"]["project_title"](project_name)
+    raw = project_name.strip()
+    m = re.fullmatch(r"id:([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})", raw)
+    if m:
+        project_id = m.group(1)
+        label = f"id:{project_id}"
+        project_selector = CONFIG["selectors"]["project_id"](project_id)
+    elif re.fullmatch(r"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}", raw):
+        # Convenience: if user passes just the UUID, treat it as project id.
+        project_id = raw
+        label = f"id:{project_id}"
+        project_selector = CONFIG["selectors"]["project_id"](project_id)
+    else:
+        label = raw
+        project_selector = CONFIG["selectors"]["project_title"](raw)
+
+    print(CONFIG["messages"]["info"]["entering_project"].format(label))
     await page.locator(project_selector).click()
     print(CONFIG["messages"]["info"]["project_page_loaded"])
 
     for term in search_terms:
-        await search_and_save(page, project_name, term)
+        await search_and_save(page, label, term)
 
 async def main():
     """Main function to orchestrate the automation."""

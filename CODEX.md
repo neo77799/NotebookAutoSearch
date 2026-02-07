@@ -37,6 +37,13 @@ cd d:\Flash_dev\fl_shape_app\NotebookAutoSearch
 .\.venv\Scripts\python.exe main.py search "プロジェクト名" "検索語1" "検索語2"
 ```
 
+プロジェクトID（UUID）が分かっている場合は、`id:` プレフィックス（またはUUID単体）で指定できます。
+
+```powershell
+.\.venv\Scripts\python.exe main.py search "id:<notebook_uuid>" "検索語"
+.\.venv\Scripts\python.exe main.py search "<notebook_uuid>" "検索語"
+```
+
 検索結果は `NotebookAutoSearch/output/` に `YYYYMMDD_プロジェクト名_検索語.md` のようなファイル名で保存されます。
 
 ## Headless / Headful
@@ -76,4 +83,3 @@ $OutputEncoding = [System.Text.Encoding]::UTF8
 ## 推奨の使い分け
 - 構造体名/タグ名など「固有名詞で引ける」もの: そのまま検索語にする（例: `ShapeRecords`, `DefineShape4`）
 - 「説明を引き出したい」もの: 質問文で検索する（例: `StraightEdgeRecord は水平/垂直/一般線をどう符号化する？`）
-

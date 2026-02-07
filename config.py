@@ -20,6 +20,11 @@ CONFIG = {
             f'project-button:has(span.project-button-title:has-text("{project_name}")) '
             f'button.primary-action-button'
         ),
+        # Stable targeting when the NotebookLM internal project id (UUID) is known.
+        "project_id": lambda project_id: (
+            f'project-button:has(span#project-{project_id}-title) '
+            f'button.primary-action-button'
+        ),
         "search_box": 'textarea[aria-label="クエリボックス"]',
         # NotebookLM renders multiple send buttons; prefer an enabled one.
         "send_button": 'button[aria-label="送信"]:not([disabled])',

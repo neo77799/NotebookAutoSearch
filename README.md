@@ -65,6 +65,13 @@ python main.py list
 python main.py search "プロジェクト名" "検索したい言葉"
 ```
 
+NotebookLMのプロジェクトID（UUID）が分かっている場合は、`id:` プレフィックスまたはUUID単体でも指定できます。
+
+```powershell
+python main.py search "id:<notebook_uuid>" "検索語"
+python main.py search "<notebook_uuid>" "検索語"
+```
+
 複数の言葉で検索することも可能です。
 
 ```powershell
