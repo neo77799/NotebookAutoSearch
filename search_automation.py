@@ -27,8 +27,41 @@ async def search_and_save(page, project_name, search_term):
     await page.type(CONFIG["selectors"]["search_box"], search_term) # Type the search term
 
     print(CONFIG["messages"]["info"]["clicking_send"])
-    await page.wait_for_selector(CONFIG["selectors"]["send_button"])
-    await page.click(CONFIG["selectors"]["send_button"])
+    # Prefer clicking an enabled send button. If it's not clickable, fallback to keyboard shortcuts.
+    cards = page.locator(CONFIG["selectors"]["result_message_card"])
+    count_before = await cards.count()
+
+    sent = False
+    send_candidates = [
+        CONFIG["selectors"]["send_button"],  # preferred: enabled button
+        'button[aria-label="送信"][aria-disabled="false"]',
+    ]
+    for sel in send_candidates:
+        try:
+            loc = page.locator(sel)
+            if await loc.count() > 0:
+                await loc.first.click()
+                sent = True
+                break
+        except Exception:
+            pass
+
+    if not sent:
+        # NotebookLM sometimes uses Ctrl+Enter to send; try both.
+        await page.focus(CONFIG["selectors"]["search_box"])
+        try:
+            await page.keyboard.press("Control+Enter")
+            sent = True
+        except Exception:
+            await page.keyboard.press("Enter")
+            sent = True
+
+    # Ensure a new assistant message appeared; otherwise we might read a previous response.
+    deadline_send = asyncio.get_event_loop().time() + 15.0
+    while asyncio.get_event_loop().time() < deadline_send:
+        if await cards.count() > count_before:
+            break
+        await asyncio.sleep(0.1)
 
     print(CONFIG["messages"]["info"]["wait_for_response"])
     last_message = page.locator(CONFIG["selectors"]["result_message_card"]).last
@@ -63,12 +96,20 @@ async def search_and_save(page, project_name, search_term):
     print(result_text.strip())
     print(CONFIG["messages"]["info"]["search_result_footer"])
 
-    # Clean up the text by removing reference numbers and formatting
+    # Clean up the text by removing citation markers / list formatting.
+    # Be careful: the SWF spec includes many meaningful digits (e.g., UB3, 1/20),
+    # so only strip *trailing* footnote-like markers and leading list numbers.
     cleaned_lines = []
     for line in result_text.split('\n'):
-        # Remove trailing reference numbers (e.g., "1:", "1.", " [1]")
-        line = re.sub(r'\s*\d+[:.]?','', line).strip()
+        # Remove bracketed citation markers like "[12]"
         line = re.sub(r'\[\d+\]', '', line).strip()
+
+        # Preserve short spec tokens like "UB3", "SB5".
+        if not re.fullmatch(r'(?:UB|SB)\d+', line):
+            # Remove inline citation numbers before punctuation (e.g. "です12。", "see45,").
+            line = re.sub(r'(?<=[^\\s])\\d{1,3}(?=[。．\\.,])', '', line).strip()
+            # Remove trailing citation numbers (e.g. "...です12", "... 12...").
+            line = re.sub(r'(?<=[^\\s])\\d{1,3}(?:\\.\\.\\.)?\\s*$', '', line).strip()
         # Remove leading list numbers (e.g., "1. ")
         line = re.sub(r'^\s*\d+\.\s*', '', line).strip()
         if line: # Only add non-empty lines

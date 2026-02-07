@@ -1,5 +1,6 @@
 import asyncio
 import sys
+import os
 from playwright.async_api import async_playwright, Page
 from typing import Callable, Awaitable
 
@@ -7,6 +8,22 @@ from config import CONFIG
 from auth import setup_auth
 from project_manager import list_projects
 from search_automation import search_and_save
+
+def _ensure_utf8_stdio() -> None:
+    """Avoid UnicodeEncodeError on Windows consoles (cp932) when printing Japanese text."""
+    try:
+        sys.stdout.reconfigure(encoding="utf-8")
+    except Exception:
+        pass
+    try:
+        sys.stderr.reconfigure(encoding="utf-8")
+    except Exception:
+        pass
+
+def _headless_default() -> bool:
+    """NotebookLM may block automation in headless mode; default to headful unless explicitly enabled."""
+    v = os.environ.get("NOTEBOOKAUTOSEARCH_HEADLESS", "").strip().lower()
+    return v in ("1", "true", "yes", "on")
 
 async def with_playwright(func: Callable[[Page], Awaitable[None]]):
     """Initializes Playwright, creates a context and page, and handles errors."""
@@ -17,7 +34,7 @@ async def with_playwright(func: Callable[[Page], Awaitable[None]]):
     async with async_playwright() as p:
         context = await p.chromium.launch_persistent_context(
             CONFIG["paths"]["user_data_dir"],
-            headless=True,
+            headless=_headless_default(),
             channel="chrome",
             args=["--disable-blink-features=AutomationControlled"],
         )
@@ -55,6 +72,7 @@ async def search_command(page: Page, project_name: str, search_terms: list[str])
 
 async def main():
     """Main function to orchestrate the automation."""
+    _ensure_utf8_stdio()
     args = sys.argv[1:]
     
     if not args:

@@ -2,6 +2,11 @@
 
 このスクリプトは、Playwrightを利用してNotebookLMの検索を自動化します。
 
+## 前提
+
+- Python 3.10+ 推奨（動作実績: 3.14）
+- Google Chrome がインストール済みであること（Playwrightを `channel="chrome"` で起動します）
+
 ## プロジェクト構造
 
 プロジェクトは以下のファイルに分割されています。
@@ -16,29 +21,29 @@
 
 ## 使い方
 
-### 0. Conda環境の構築
+### 0. 仮想環境の構築（venv推奨）
 
 以下の手順で仮想環境を構築し、アクティベートしてください。
 
-```bash
-conda create -n NotebookAutoSearch python=3.12  # 環境名とPythonバージョンは適宜変更してください
-conda activate NotebookAutoSearch
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
 ```
 
 ### 1. 依存関係のインストール
 
 まず、必要なライブラリをインストールします。
 
-```bash
-pip install -r requirements.txt
-playwright install
+```powershell
+python -m pip install -r requirements.txt
+python -m playwright install
 ```
 
 ### 2. 初回セットアップ
 
-以下のコマンドを実行して、ブラウザでGoogleアカウントにログインします。認証情報が `./secure/user_data` ディレクトリに保存されます。
+以下のコマンドを実行して、ブラウザでGoogleアカウントにログインします。認証情報が `.secure/user_data` ディレクトリに保存されます。
 
-```bash
+```powershell
 python main.py setup
 ```
 
@@ -48,7 +53,7 @@ python main.py setup
 
 以下のコマンドで、利用可能なプロジェクトの一覧を表示できます。
 
-```bash
+```powershell
 python main.py list
 ```
 
@@ -56,14 +61,45 @@ python main.py list
 
 プロジェクト名と検索したい言葉を指定して、検索を実行します。
 
-```bash
+```powershell
 python main.py search "プロジェクト名" "検索したい言葉"
 ```
 
 複数の言葉で検索することも可能です。
 
-```bash
+```powershell
 python main.py search "プロジェクト名" "言葉1" "言葉2"
 ```
 
 検索結果は、`output` ディレクトリにMarkdownファイルとして保存されます。
+
+## Headless / Headful
+
+- デフォルトは headful（画面あり）で起動します（NotebookLM側の挙動で headless が不安定になることがあるため）
+- headless を明示したい場合は環境変数を設定します
+
+```powershell
+$env:NOTEBOOKAUTOSEARCH_HEADLESS="1"
+python main.py search "プロジェクト名" "検索語"
+```
+
+## トラブルシュート
+
+### 文字化け/UnicodeEncodeError（Windowsのcp932）
+
+必要に応じて、PowerShell側をUTF-8出力にします。
+
+```powershell
+$env:PYTHONIOENCODING="utf-8"
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+$OutputEncoding = [System.Text.Encoding]::UTF8
+```
+
+### Chromeプロファイル競合（TargetClosedError等）
+
+`.secure/user_data` を使っているChromeプロセスが残っていると失敗することがあります。
+その場合はいったんChromeを終了してから再実行してください。
+
+## Codex向け
+
+Codex運用手順は `CODEX.md` を参照してください。

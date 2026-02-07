@@ -15,9 +15,14 @@ CONFIG = {
     },
     "selectors": {
         "project_button": "project-button",
-        "project_title": lambda project_name: f'span.project-button-title:has-text("{project_name}")',
+        # Click the actual action button inside the project tile to avoid click interception.
+        "project_title": lambda project_name: (
+            f'project-button:has(span.project-button-title:has-text("{project_name}")) '
+            f'button.primary-action-button'
+        ),
         "search_box": 'textarea[aria-label="クエリボックス"]',
-        "send_button": 'button[aria-label="送信"]',
+        # NotebookLM renders multiple send buttons; prefer an enabled one.
+        "send_button": 'button[aria-label="送信"]:not([disabled])',
         "result_message_card": "mat-card.to-user-message-card-content",
         "message_text_content": "div.message-text-content",
         "response_actions": "response-actions",
